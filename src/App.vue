@@ -1,47 +1,89 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { reactive, ref, watch } from "vue";
+import { getCocktails, getingredients } from "@/services/api";
+import { onBeforeMount } from "vue";
+import type { Ingredient } from "./services/api";
+
+interface State {
+  query: string;
+  loading: boolean;
+  ingredients: Ingredient[];
+  selectedIngredient: string[];
+  cocktailList: any;
+  error: any;
+}
+
+const state: State = reactive({
+  query: "",
+  loading: false,
+  ingredients: [],
+  error: null,
+  selectedIngredient: [],
+  cocktailList: [],
+});
+
+onBeforeMount(() => {
+  getData();
+});
+
+async function getData() {
+  state.loading = true;
+  state.ingredients = [];
+  state.error = null;
+  try {
+    state.ingredients = await getingredients();
+  } catch (error) {
+    state.error = error;
+  } finally {
+    state.loading = false;
+  }
+}
+
+watch(
+  () => state.selectedIngredient,
+  async (selectedIngredient) => {
+    state.cocktailList = await getCocktails(
+      import.meta.env.VITE_COCKTAIL_API_KEY,
+      selectedIngredient
+    );
+  }
+);
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
+  <!-- <header></header> -->
 
   <main>
-    <TheWelcome />
+    selectedIngredient ={{ state.selectedIngredient }}
+    <div class="CheckboxContainer">
+      <div
+        class="IngredientCheckBox"
+        :key="ingredient.strIngredient1"
+        v-for="ingredient in state.ingredients"
+      >
+        <input
+          type="checkbox"
+          :id="ingredient.strIngredient1"
+          :value="ingredient.strIngredient1"
+          v-model="state.selectedIngredient"
+        />
+        <label :for="ingredient.strIngredient1">
+          {{ ingredient.strIngredient1 }}</label
+        >
+      </div>
+    </div>
   </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+.CheckboxContainer {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: row;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.IngredientCheckBox {
+  margin-right: 2px;
 }
 </style>
